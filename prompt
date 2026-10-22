@@ -1,34 +1,55 @@
-Agis en tant qu'expert en développement web frontend et crée une application web complète, moderne, belle et ergonomique pour un "Jeu de l'Oie" classique. Le tout doit être contenu dans un seul fichier HTML autonome (incluant le CSS pour le design et le JavaScript pour toute la logique).
+Agis en tant qu'expert en développement web frontend, Lead UI/UX Designer et Game Designer. Crée une application web complète, moderne, ultra-réaliste et visuellement bluffante pour un "Jeu de l'Oie" classique enrichi.
 
-Voici les spécifications techniques et fonctionnelles exactes :
+L'intégralité de l'application doit être contenue dans un SEUL fichier HTML autonome (HTML5, CSS3 avancé, SVG inline, Canvas HTML5 et JavaScript Vanilla). Il ne doit y avoir AUCUNE dépendance externe (pas de frameworks, pas d'images externes, pas de bibliothèques 3D) : tous les visuels, textures, animations physiques et effets sonores doivent être générés en pur code (CSS, SVG, Canvas et API Web Audio JS).
 
-1. Écran de configuration initial :
-   - Un menu élégant permettant de choisir le nombre de joueurs (de 1 à 4) et de personnaliser éventuellement leurs noms ou de garder des noms par défaut (Joueur 1, Joueur 2, etc.) avec des couleurs de pions distinctes.
-   - Un bouton "Démarrer la partie".
+Voici le cahier des charges exact :
 
-2. Interface de jeu et Design (UI/UX) :
-   - Un design soigné, moderne, épuré et responsive (style web app propre, ombres douces, couleurs harmonieuses).
-   - Génère tous les assets visuels directement en CSS et SVG (pas d'images externes requises) : pions colorés, icônes pour les cases spéciales (oies, pont, hôtel, puits, labyrinthe, tête de mort).
-   - Un plateau de jeu interactif affichant clairement les 63 cases numérotées, sur lequel les pions des joueurs se déplacent en temps réel de manière fluide.
-   - Un panneau de contrôle latéral ou supérieur indiquant :
-     * À quel joueur c'est le tour (avec indicateur visuel de sa couleur).
-     * Un bouton interactif "Lancer le dé" stylisé, avec une animation de dé.
-     * Un journal des actions / historique des tours en direct (ex: "Le Joueur 1 a fait 4 et tombe sur la case 10.").
-     * Le statut des joueurs (ex: si un joueur est bloqué au puits).
-     * Un bouton "Recommencer / Nouvelle partie".
+1. Direction Artistique, Rendu Visuel 3D & Effets Avancés :
+   - Plateau & Textures procédurales SVG : Rendu visuel d'un plateau physique noble en bois/carton renforcé, généré à l'aide de filtres SVG natifs (`feTurbulence`, `feDisplacementMap`) avec ombres portées et biseaux métalliques.
+   - Effet embossé / gravure : Cases numérotées avec chiffres dorés gravés dans le plateau, ombres internes (`box-shadow: inset`) et reflets lumineux.
+   - Caméra & Vue Isométrique : Bouton de bascule dynamique permettant d'alterner entre une vue 2D du dessus et une vue 3D Isométrique inclinée (`transform: rotateX(45deg) rotateZ(-15deg)` avec gestion de la profondeur de champ).
+   - Animation des Pions & Ombres dynamiques : 
+     * Déplacement en arc parabolique : les pions effectuent de véritables petits sauts d'une case à l'autre avec une courbe de gravité fluide (`cubic-bezier`).
+     * Ombres portées dynamiques sous les pions qui s'agrandissent, se décalent et s'estompent pendant la phase de saut.
+     * Aura du joueur actif : cercle lumineux pulsant sous le pion du joueur dont c'est le tour.
+   - Dés 3D Physiques CSS : Deux véritables cubes 3D animés en CSS (`transform-style: preserve-3d`) effectuant des rotations chaotiques sur trois axes avec effet de rebond lors du lancer.
+   - Prévisualisation de trajectoire : Éclairage séquentiel de la piste et illumination des cases sur le chemin à parcourir juste avant le déplacement du pion.
+   - Moteur de Particules (Canvas HTML5) : 
+     * Éclaboussures d'eau animées lorsqu'un pion tombe sur la case Puits.
+     * Effet de fumée/disparition sombre sur la case Tête de Mort.
+     * Étoiles / étincelles dorées éclatantes sur les cases Oie et Pont.
+   - Effets sonores intégrés (Web Audio API) : Sons synthétisés de lancer de dés, bruit de pion qui saute, déclenchement des pièges et fanfare de victoire.
 
-3. Règles et Logique du Jeu (JavaScript) :
-   - Le plateau comporte exactement 63 cases.
-   - Gestion des tours de 1 à N joueurs.
-   - Lancer de dé aléatoire entre 1 et 6.
-   - Cases spéciales à implémenter :
-     * Les Oies (cases 9, 18, 27, 36, 45, 54) : Avancent du même nombre de cases que le dé qui vient d'être lancé.
-     * Le Pont (case 6) : Avance directement à la case 12.
-     * L'Hôtel / Auberge (case 19) : Le joueur passe son tour suivant.
-     * Le Puits (case 31) : Le joueur est bloqué pendant 1 tour.
-     * Le Labyrinthe (case 42) : Recule le joueur à la case 30.
-     * La Tête de Mort (case 58) : Renvoie le joueur tout droit à la case départ (case 1).
-   - Condition de victoire : Atteindre *exactement* la case 63. Si le score du dé dépasse 63, le pion rebondit et recule du surplus.
-   - Une modale de victoire stylisée s'affiche lorsqu'un joueur gagne, avec la possibilité de relancer une partie.
+2. Écran de configuration (Setup) :
+   - Choix du nombre de joueurs (1 à 4).
+   - Mode Solo / Bot (IA) : Option pour définir chaque joueur comme "Humain" ou "Bot / Ordinateur".
+   - Personnalisation des noms et sélection de la couleur des pions.
+   - Bouton "Démarrer la partie" avec transition fluide vers le plateau.
 
-Fournis uniquement le code HTML complet, propre, commenté et prêt à être testé en l'enregistrant dans un fichier `.html`et tu ajoutera avec les image et autres fichiers complementaire que je dois mettre avec.
+3. Interface de jeu (UI/UX & HUD) :
+   - Tableau de bord latéral ou supérieur ergonomique :
+     * Indicateur du joueur actif avec halo de couleur.
+     * Zone interactive d'activation des 2 Dés 3D.
+     * Journal des actions scrollable en temps réel.
+     * Statut des joueurs (bloqué, en attente, passe son tour).
+     * Boutons "Basculer la vue 3D" et "Nouvelle Partie".
+
+4. Règles et Logique du Jeu (JavaScript) :
+   - Plateau de 63 cases en spirale.
+   - Lancer de 2 DÉS (score total de 2 à 12).
+   - Combinaisons de départ (Règle du 9) : 
+     * 6 + 3 au tout premier lancer = avance directement en case 26.
+     * 5 + 4 au tout premier lancer = avance directement en case 53.
+   - Cases spéciales :
+     * Les Oies (9, 18, 27, 36, 45, 54) : Rebondissent du score exact du dé.
+     * Le Pont (case 6) : Avance en case 12.
+     * L'Hôtel / Auberge (case 19) : Passe 1 tour.
+     * Le Puits (case 31) : Bloqué pendant 2 tours ou jusqu'à ce qu'un joueur vienne le libérer.
+     * Le Labyrinthe (case 42) : Recule en case 30.
+     * La Tête de Mort (case 58) : Retour à la case 1.
+     * Cases Mystère / Cartes Chance (ex: 15, 25, 40, 50) : Tirage d'un événement aléatoire (échange de place, rejoue, bonus/malus de cases).
+   - Règle de collision : Si un joueur arrive sur une case occupée, le résident est renvoyé à la case de départ du premier.
+   - Condition de victoire : Arrivée pile sur la case 63 (rebond en arrière en cas de dépassement).
+   - Fin de partie : Modale de célébration avec confettis Canvas, écran récapitulatif de statistiques (joueur le plus chanceux, total de lancers, tours bloqués) et option de revanche.
+
+Fournis uniquement le code HTML complet, propre, commenté, fonctionnel et directement exécutable en l'enregistrant dans un fichier `.html`.
