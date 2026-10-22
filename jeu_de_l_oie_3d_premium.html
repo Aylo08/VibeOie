@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jeu de l'Oie - Édition 3D Premium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- ========================================== -->
+    <!-- FICHIER CSS (STYLES)                       -->
+    <!-- ========================================== -->
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            /* Nouveau thème vibrant : Vert Forêt Émeraude */
+            background: radial-gradient(circle at center, #064e3b, #022c22);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+
+        /* Boutons Premium Dorés/Verts */
+        .btn-glossy {
+            background: linear-gradient(to bottom, #fbbf24, #d97706);
+            border: 4px solid #78350f;
+            box-shadow: 0 6px 0 #78350f, 0 10px 15px rgba(0,0,0,0.5), inset 0 4px 10px rgba(255,255,255,0.4);
+            transition: transform 0.1s, box-shadow 0.1s;
+            text-shadow: 1px 2px 2px rgba(0,0,0,0.3);
+            color: #fff;
+        }
+        .btn-glossy:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 #78350f, 0 2px 5px rgba(0,0,0,0.5), inset 0 4px 10px rgba(255,255,255,0.4);
+        }
+        
+        .btn-glossy-alt {
+            background: linear-gradient(to bottom, #34d399, #059669);
+            border: 4px solid #064e3b;
+            box-shadow: 0 6px 0 #064e3b, 0 10px 15px rgba(0,0,0,0.5), inset 0 4px 10px rgba(255,255,255,0.4);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn-glossy-alt:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 #064e3b, 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .panel-glass {
+            background: rgba(2, 44, 34, 0.75);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+
+        #setup-screen {
+            background: radial-gradient(circle at center, rgba(6, 78, 59, 0.9), rgba(2, 44, 34, 0.95));
+            backdrop-filter: blur(5px);
+            z-index: 50;
+        }
+
+        .hero-image {
+            width: 100%;
+            max-width: 350px;
+            border-radius: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            border: 6px solid #fbbf24;
+            margin-bottom: -30px;
+            z-index: 2;
+            position: relative;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            80% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <!-- ========================================== -->
+    <!-- FICHIER HTML (STRUCTURE UI)                -->
+    <!-- ========================================== -->
+    <canvas id="game-canvas"></canvas>
+
+    <div id="ui-layer" class="ui-layer flex flex-col justify-between hidden">
+        
+        <!-- HUD Haut : Joueurs & Tour -->
+        <div class="flex justify-between items-start p-4 interactive">
+            <div id="players-hud" class="flex flex-col gap-2">
+                <!-- Dynamique -->
+            </div>
+            
+            <div class="panel-glass rounded-2xl p-3 flex flex-col items-center min-w-[150px] border-b-4 border-b-yellow-400">
+                <span class="text-white font-bold text-xs uppercase tracking-wider opacity-90">Tour de</span>
+                <span id="turn-indicator" class="text-2xl font-black text-white text-shadow-md">Joueur 1</span>
+            </div>
+        </div>
+
+        <!-- Popups Evènements -->
+        <div id="event-popup" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 interactive hidden w-full px-4 flex justify-center z-50">
+            <div class="panel-glass rounded-3xl p-6 flex flex-col items-center text-center animate-pop max-w-sm w-full border-4 border-yellow-400 bg-emerald-900/90">
+                <div class="text-6xl mb-2 animate-float" id="event-icon">❓</div>
+                <h2 id="event-title" class="text-3xl font-black text-yellow-400 mb-2 drop-shadow-md">Carte Mystère</h2>
+                <p id="event-desc" class="text-white text-xl font-bold mb-6">Vous avancez de 3 cases !</p>
+                <button onclick="Game.closeEvent()" class="btn-glossy text-white font-black py-3 px-8 rounded-full text-xl w-full">Continuer</button>
+            </div>
+        </div>
+
+        <!-- HUD Bas : Logs & Lancer -->
+        <div class="flex justify-between items-end p-4 interactive">
+            <div id="action-log" class="panel-glass rounded-2xl p-3 w-64 h-32 overflow-y-auto flex flex-col-reverse text-xs hidden md:flex">
+                <!-- Logs -->
+            </div>
+
+            <div class="flex-1 flex justify-center pb-2 md:pb-6">
+                <button id="btn-roll" onclick="Game.rollDice()" class="btn-glossy text-white font-black py-3 px-8 md:py-4 md:px-12 rounded-full text-2xl md:text-3xl animate-float flex items-center gap-3">
+                    <span class="text-3xl">🎲</span> LANCER
+                </button>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <button onclick="Game.toggleCamera()" class="btn-glossy-alt text-white font-bold p-3 md:p-4 rounded-full text-xl flex items-center justify-center w-12 h-12 md:w-16 md:h-16 shadow-lg">
+                    🎥
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Écran d'accueil -->
+    <div id="setup-screen" class="absolute inset-0 flex flex-col items-center justify-center interactive p-4">
+        <img src="Gemini_Generated_Image_esl5hoesl5hoesl5.jpeg" onerror="this.src='https://placehold.co/400x300/064e3b/fbbf24?text=Jeu+de+l+Oie'" alt="Personnages" class="hero-image">
+        
+        <div class="panel-glass rounded-3xl p-6 md:p-8 w-full max-w-lg pt-12 relative border-t-4 border-t-yellow-400">
+            <h1 class="text-4xl md:text-5xl font-black text-center text-transparent bg-clip-text bg-gradient-to-b from-yellow-200 to-yellow-600 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] mb-6">
+                JEU DE L'OIE 3D
+            </h1>
+            
+            <div id="player-setup-list" class="flex flex-col gap-3 mb-6">
+                <!-- Config joueurs -->
+            </div>
+
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="UI.addPlayer()" class="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-4 rounded-lg transition-colors border border-white/30 text-sm">
+                    + Ajouter Joueur
+                </button>
+                <span id="player-count-text" class="text-white font-bold text-sm">2/4 Joueurs</span>
+            </div>
+
+            <button onclick="Game.start()" class="btn-glossy text-white font-black py-4 px-8 rounded-2xl text-2xl w-full uppercase tracking-wider shadow-2xl">
+                JOUER !
+            </button>
+        </div>
+    </div>
+
+    <!-- Écran Victoire -->
+    <div id="victory-screen" class="absolute inset-0 flex flex-col items-center justify-center interactive p-4 hidden z-50 bg-black/80 backdrop-blur-md">
+        <div class="animate-pop flex flex-col items-center">
+            <div class="text-8xl mb-4 animate-float">🏆</div>
+            <h1 class="text-6xl md:text-8xl font-black text-yellow-400 mb-2 text-center drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
+                VICTOIRE !
+            </h1>
+            <h2 id="winner-name" class="text-4xl font-bold text-white mb-8 text-center bg-white/10 px-8 py-3 rounded-full border-2 border-white/20">Joueur 1 a gagné !</h2>
+            <button onclick="location.reload()" class="btn-glossy text-white font-black py-4 px-12 rounded-full text-2xl">
+                REJOUER
+            </button>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- FICHIER JAVASCRIPT (LOGIQUE & 3D)          -->
+    <!-- ========================================== -->
+    <script>
+        const Tween = {
+            tweens: [],
+            to: function(target, props, duration, easing = this.Easing.Linear.None) {
+                return new Promise(resolve => {
+                    const startProps = {};
+                    for (let key in props) startProps[key] = target[key];
+                    this.tweens.push({
+                        target, props, startProps, duration, easing, 
+                        startTime: performance.now(), resolve
+                    });
+                });
+            },
+            update: function(time) {
+                for (let i = this.tweens.length - 1; i >= 0; i--) {
+                    const t = this.tweens[i];
+                    const elapsed = time - t.startTime;
+                    const progress = Math.min(elapsed / t.duration, 1);
+                    const e = t.easing(progress);
+                    for (let key in t.props) {
+                        t.target[key] = t.startProps[key] + (t.props[key] - t.startProps[key]) * e;
+                    }
+                    if (progress === 1) {
+                        t.resolve();
+                        this.tweens.splice(i, 1);
+                    }
+                }
+            },
+            Easing: {
+                Linear: { None: k => k },
+                Quadratic: { Out: k => k * (2 - k) },
+                Cubic: { Out: k => --k * k * k + 1 },
+                Bounce: { Out: k => {
+                    if (k < (1 / 2.75)) return 7.5625 * k * k;
+                    else if (k < (2 / 2.75)) return 7.5625 * (k -= (1.5 / 2.75)) * k + 0.75;
+                    else if (k < (2.5 / 2.75)) return 7.5625 * (k -= (2.25 / 2.75)) * k + 0.9375;
+                    else return 7.5625 * (k -= (2.625 / 2.75)) * k + 0.984375;
+                }}
+            }
+        };
+
+        const textureLoader = new THREE.TextureLoader();
+        const woodTexture = textureLoader.load('Gemini_Generated_Image_kf0t08kf0t08kf0t.jpeg');
+        woodTexture.wrapS = THREE.RepeatWrapping; woodTexture.wrapT = THREE.RepeatWrapping; woodTexture.repeat.set(4, 4);
+
+        const gooseTexture = textureLoader.load('Gemini_Generated_Image_u5umd3u5umd3u5um.jpeg');
+
+        const TextureGen = {
+            createTile: function(number, type) {
+                const size = 256;
+                const canvas = document.createElement('canvas');
+                canvas.width = size; canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                let bgColor = '#ffffff'; let borderColor = '#e2e8f0'; let icon = '';
+                switch(type) {
+                    case 'start': bgColor = '#a7f3d0'; borderColor = '#10b981'; icon = '🏁'; break;
+                    case 'end': bgColor = '#fef08a'; borderColor = '#eab308'; icon = '🏆'; break;
+                    case 'bridge': bgColor = '#fed7aa'; borderColor = '#f97316'; icon = '🌉'; break;
+                    case 'hotel': bgColor = '#fbcfe8'; borderColor = '#ec4899'; icon = '🏨'; break;
+                    case 'well': bgColor = '#bfdbfe'; borderColor = '#3b82f6'; icon = '🕳️'; break;
+                    case 'maze': bgColor = '#e9d5ff'; borderColor = '#a855f7'; icon = '🌀'; break;
+                    case 'skull': bgColor = '#fecaca'; borderColor = '#ef4444'; icon = '💀'; break;
+                    case 'mystery': bgColor = '#cffafe'; borderColor = '#06b6d4'; icon = '❓'; break;
+                }
+
+                ctx.fillStyle = borderColor;
+                ctx.beginPath(); ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = bgColor;
+                ctx.beginPath(); ctx.arc(size/2, size/2, size/2 - 14, 0, Math.PI * 2); ctx.fill();
+                
+                ctx.fillStyle = '#1e293b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                if (icon) {
+                    ctx.font = 'bold 70px Nunito'; ctx.fillText(icon, size/2, size/2 - 25);
+                    ctx.font = 'bold 55px Nunito'; ctx.fillText(number, size/2, size/2 + 40);
+                } else {
+                    ctx.font = 'bold 110px Nunito'; ctx.fillText(number, size/2, size/2 + 5);
+                }
+                const tex = new THREE.CanvasTexture(canvas); tex.anisotropy = 16; return tex;
+            },
+            createDiceFace: function(value) {
+                const size = 128;
+                const canvas = document.createElement('canvas');
+                canvas.width = size; canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#f8fafc'; ctx.fillRect(0,0,size,size);
+                ctx.lineWidth = 10; ctx.strokeStyle = '#cbd5e1'; ctx.strokeRect(0,0,size,size);
+                ctx.fillStyle = '#0f172a';
+                const drawDot = (x, y) => { ctx.beginPath(); ctx.arc(size*x, size*y, size*0.13, 0, Math.PI*2); ctx.fill(); };
+                if (value === 1 || value === 3 || value === 5) drawDot(0.5, 0.5);
+                if (value !== 1) { drawDot(0.25, 0.25); drawDot(0.75, 0.75); }
+                if (value === 4 || value === 5 || value === 6) { drawDot(0.25, 0.75); drawDot(0.75, 0.25); }
+                if (value === 6) { drawDot(0.25, 0.5); drawDot(0.75, 0.5); }
+                return new THREE.CanvasTexture(canvas);
+            }
+        };
+
+        const Engine = {
+            init: function() {
+                this.camTarget = new THREE.Vector3(0, 0, 0);
+                this.cameraOffset = new THREE.Vector3(0, 22, 22);
+                this.viewType = 'iso';
+                this.particles = [];
+
+                this.scene = new THREE.Scene();
+                // Fond émeraude très sombre
+                this.scene.background = new THREE.Color('#021a14'); 
+                this.scene.fog = new THREE.FogExp2('#021a14', 0.015);
+                
+                this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                
+                this.renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas'), antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+                // Lumières Premium
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(ambientLight);
+
+                const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+                dirLight.position.set(15, 40, 20);
+                dirLight.castShadow = true;
+                dirLight.shadow.mapSize.width = 2048;
+                dirLight.shadow.mapSize.height = 2048;
+                dirLight.shadow.camera.near = 1; dirLight.shadow.camera.far = 100;
+                dirLight.shadow.camera.left = -35; dirLight.shadow.camera.right = 35;
+                dirLight.shadow.camera.top = 35; dirLight.shadow.camera.bottom = -35;
+                this.scene.add(dirLight);
+
+                // Lumière de suivi (Spot dynamique sur le pion)
+                this.spotLight = new THREE.PointLight(0xffd700, 1.5, 20);
+                this.spotLight.position.set(0, 5, 0);
+                this.scene.add(this.spotLight);
+
+                window.addEventListener('resize', () => this.onWindowResize(), false);
+                Game.board = new Board(); 
+                this.animate();
+            },
+            setCameraView: function(type) {
+                this.viewType = type;
+                if (type === 'iso') Tween.to(this.cameraOffset, { x: -8, y: 18, z: 18 }, 1000, Tween.Easing.Quadratic.Out);
+                else if (type === 'top') Tween.to(this.cameraOffset, { x: 0, y: 35, z: 0.1 }, 1000, Tween.Easing.Quadratic.Out);
+            },
+            onWindowResize: function() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            },
+            spawnParticles: function(position, color, type='burst') {
+                const count = type === 'burst' ? 50 : 20;
+                const geometry = type === 'burst' ? new THREE.TetrahedronGeometry(0.3) : new THREE.PlaneGeometry(0.4, 0.4);
+                const material = new THREE.MeshBasicMaterial({ color: color, transparent: true });
+
+                for(let i=0; i<count; i++) {
+                    const p = new THREE.Mesh(geometry, material);
+                    p.position.copy(position);
+                    p.position.y += 0.5;
+                    const velocity = new THREE.Vector3((Math.random()-0.5)*8, Math.random()*8+2, (Math.random()-0.5)*8);
+                    this.scene.add(p);
+                    this.particles.push({ mesh: p, vel: velocity, life: 1.0, decay: Math.random()*0.5 + 0.8 });
+                }
+            },
+            updateParticles: function(dt) {
+                for(let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.life -= dt * p.decay;
+                    if(p.life <= 0) {
+                        this.scene.remove(p.mesh);
+                        this.particles.splice(i, 1);
+                        continue;
+                    }
+                    p.vel.y -= 15 * dt; // Gravité
+                    p.mesh.position.addScaledVector(p.vel, dt);
+                    p.mesh.rotation.x += dt * 10;
+                    p.mesh.rotation.y += dt * 10;
+                    p.mesh.scale.setScalar(p.life);
+                }
+            },
+            animate: function(time) {
+                requestAnimationFrame((t) => this.animate(t));
+                const dt = 0.016;
+                const currentTime = time || performance.now();
+                Tween.update(currentTime);
+                this.updateParticles(dt);
+                
+                // Suivi lumière dynamique
+                this.spotLight.position.lerp(new THREE.Vector3(this.camTarget.x, 5, this.camTarget.z), 0.1);
+
+                if (Game.state === 'setup' && Game.board) {
+                    this.camTarget.set(Math.cos(currentTime * 0.0003) * 12, 0, Math.sin(currentTime * 0.0003) * 12);
+                }
+                
+                const targetPos = new THREE.Vector3().addVectors(this.camTarget, this.cameraOffset);
+                this.camera.position.lerp(targetPos, 0.06); 
+                this.camera.lookAt(this.camTarget);
+
+                if(Game.board && Game.board.activeAura) {
+                    Game.board.activeAura.rotation.y += 0.04;
+                }
+                this.renderer.render(this.scene, this.camera);
+            }
+        };
+
+        class Board {
+            constructor() {
+                this.tiles = [];
+                this.tileObjects = [];
+                this.build();
+            }
+            build() {
+                const tableGeo = new THREE.CylinderGeometry(32, 32, 2, 64);
+                const tableMat = new THREE.MeshStandardMaterial({ map: woodTexture, roughness: 0.3, metalness: 0.1 });
+                const table = new THREE.Mesh(tableGeo, tableMat);
+                table.position.y = -1; table.receiveShadow = true;
+                Engine.scene.add(table);
+
+                const rimGeo = new THREE.TorusGeometry(32, 0.8, 32, 100);
+                const rimMat = new THREE.MeshStandardMaterial({ color: '#fbbf24', metalness: 0.9, roughness: 0.2 });
+                const rim = new THREE.Mesh(rimGeo, rimMat);
+                rim.position.y = 0; rim.rotation.x = Math.PI/2; rim.receiveShadow = true;
+                Engine.scene.add(rim);
+
+                // Ajout de petits décors 3D (Arbres/Cristaux Low Poly) autour du plateau
+                this.addDecorations();
+
+                const totalTiles = 64;
+                const centerSpacing = 4.8;
+                const coilSpacing = 6.2;
+                const b = coilSpacing / (2 * Math.PI);
+
+                for (let i = 0; i < totalTiles; i++) {
+                    const type = this.getTileType(i);
+                    const n = totalTiles - 1 - i; 
+                    let x = 0, z = 0;
+                    if (n > 0) {
+                        const theta = Math.sqrt(2 * centerSpacing * n / b);
+                        const r = b * theta;
+                        x = r * Math.cos(theta + Math.PI); z = r * Math.sin(theta + Math.PI);
+                    }
+                    this.tiles[i] = { x, z, type };
+
+                    const geo = new THREE.CylinderGeometry(1.5, 1.6, 0.4, 32);
+                    let matTop = type === 'goose' 
+                        ? new THREE.MeshStandardMaterial({ map: gooseTexture, roughness: 0.2 })
+                        : new THREE.MeshStandardMaterial({ map: TextureGen.createTile(i, type), roughness: 0.4 });
+                    
+                    const matSide = new THREE.MeshStandardMaterial({ color: '#e2e8f0', roughness: 0.5 });
+                    const mesh = new THREE.Mesh(geo, [matSide, matTop, matSide]);
+                    mesh.position.set(x, 0.2, z);
+                    mesh.castShadow = true; mesh.receiveShadow = true;
+                    Engine.scene.add(mesh);
+                    this.tileObjects[i] = mesh;
+                }
+
+                const auraGeo = new THREE.RingGeometry(1.8, 2.4, 32);
+                const auraMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+                this.activeAura = new THREE.Mesh(auraGeo, auraMat);
+                this.activeAura.rotation.x = Math.PI / 2; this.activeAura.position.y = 0.45;
+                Engine.scene.add(this.activeAura);
+                this.activeAura.visible = false;
+            }
+
+            addDecorations() {
+                const decoGeo = new THREE.ConeGeometry(1, 3, 5);
+                const decoMat = new THREE.MeshStandardMaterial({ color: '#10b981', flatShading: true, roughness: 0.8 });
+                for(let i=0; i<15; i++) {
+                    const angle = (i / 15) * Math.PI * 2;
+                    const r = 29; // Au bord du plateau
+                    const mesh = new THREE.Mesh(decoGeo, decoMat);
+                    mesh.position.set(Math.cos(angle)*r, 1.5, Math.sin(angle)*r);
+                    mesh.rotation.x = (Math.random()-0.5)*0.2;
+                    mesh.rotation.z = (Math.random()-0.5)*0.2;
+                    mesh.castShadow = true; mesh.receiveShadow = true;
+                    Engine.scene.add(mesh);
+                }
+            }
+
+            getTileType(index) {
+                if (index === 0) return 'start';
+                if (index === 63) return 'end';
+                if ([9, 18, 27, 36, 45, 54].includes(index)) return 'goose';
+                if (index === 6) return 'bridge';
+                if (index === 19) return 'hotel';
+                if (index === 31) return 'well';
+                if (index === 42) return 'maze';
+                if (index === 58) return 'skull';
+                if ([15, 25, 40, 50].includes(index)) return 'mystery';
+                return 'normal';
+            }
+            getTilePosition(index) {
+                index = Math.max(0, Math.min(63, index));
+                return new THREE.Vector3(this.tiles[index].x, 0.4, this.tiles[index].z);
+            }
+        }
+
+        class Dice {
+            constructor() {
+                this.meshes = [];
+                const geo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+                // Index des faces THREE.js Box: 0:x+, 1:x-, 2:y+, 3:y-, 4:z+, 5:z-
+                const materials = [
+                    new THREE.MeshStandardMaterial({ map: TextureGen.createDiceFace(1) }),
+                    new THREE.MeshStandardMaterial({ map: TextureGen.createDiceFace(6) }),
+                    new THREE.MeshStandardMaterial({ map: TextureGen.createDiceFace(2) }),
+                    new THREE.MeshStandardMaterial({ map: TextureGen.createDiceFace(5) }),
+                    new THREE.MeshStandardMaterial({ map: TextureGen.createDiceFace(3) }),
+                    new THREE.MeshStandardMaterial({ map: TextureGen.createDiceFace(4) })
+                ];
+                for(let i=0; i<2; i++) {
+                    const mesh = new THREE.Mesh(geo, materials);
+                    mesh.castShadow = true; mesh.receiveShadow = true;
+                    mesh.position.set(0, -100, 0); 
+                    Engine.scene.add(mesh);
+                    this.meshes.push(mesh);
+                }
+            }
+            async roll(startPos) {
+                const val1 = Math.floor(Math.random() * 6) + 1;
+                const val2 = Math.floor(Math.random() * 6) + 1;
+                
+                // CORRECTION BUG 2 : Rotation précise pour que la bonne face atterrisse sur y+ (le haut)
+                const getRot = (val) => {
+                    switch(val) {
+                        case 1: return { x: 0, y: 0, z: Math.PI/2 }; // 1 était sur x+
+                        case 6: return { x: 0, y: 0, z: -Math.PI/2 }; // 6 était sur x-
+                        case 2: return { x: 0, y: 0, z: 0 }; // 2 est déjà sur y+
+                        case 5: return { x: Math.PI, y: 0, z: 0 }; // 5 est sur y-
+                        case 3: return { x: -Math.PI/2, y: 0, z: 0 }; // 3 est sur z+
+                        case 4: return { x: Math.PI/2, y: 0, z: 0 }; // 4 est sur z-
+                    }
+                };
+
+                const rot1 = getRot(val1); const rot2 = getRot(val2);
+                // Ajouter des tours complets aléatoires pour l'effet de lancer
+                rot1.x += Math.PI*4; rot1.y += Math.PI*6; rot1.z += Math.PI*4;
+                rot2.x += Math.PI*6; rot2.y += Math.PI*4; rot2.z += Math.PI*6;
+
+                this.meshes[0].position.set(startPos.x - 1, startPos.y + 8, startPos.z - 1);
+                this.meshes[1].position.set(startPos.x + 1, startPos.y + 8, startPos.z + 1);
+                
+                const p1 = Tween.to(this.meshes[0].position, { x: startPos.x - 2, y: 0.6, z: startPos.z + 2 }, 900, Tween.Easing.Bounce.Out);
+                const r1 = Tween.to(this.meshes[0].rotation, rot1, 900, Tween.Easing.Cubic.Out);
+                const p2 = Tween.to(this.meshes[1].position, { x: startPos.x + 2, y: 0.6, z: startPos.z - 2 }, 1000, Tween.Easing.Bounce.Out);
+                const r2 = Tween.to(this.meshes[1].rotation, rot2, 1000, Tween.Easing.Cubic.Out);
+
+                await Promise.all([p1, r1, p2, r2]);
+                
+                // Force l'alignement parfait à la fin
+                this.meshes[0].rotation.set(getRot(val1).x, getRot(val1).y, getRot(val1).z);
+                this.meshes[1].rotation.set(getRot(val2).x, getRot(val2).y, getRot(val2).z);
+
+                await new Promise(r => setTimeout(r, 1200)); 
+                this.meshes[0].position.y = -100; this.meshes[1].position.y = -100;
+
+                return { v1: val1, v2: val2, total: val1 + val2 };
+            }
+        }
+
+        class Player {
+            constructor(id, name, isBot, colorHex) {
+                this.id = id; this.name = name; this.isBot = isBot; this.color = colorHex;
+                this.position = 0; this.skipTurns = 0; this.isStuck = false;
+                this.stats = { turns: 0, geese: 0, traps: 0 };
+                
+                const pts = [];
+                pts.push(new THREE.Vector2(0, 0)); pts.push(new THREE.Vector2(1.0, 0)); pts.push(new THREE.Vector2(1.0, 0.3));
+                pts.push(new THREE.Vector2(0.6, 0.5)); pts.push(new THREE.Vector2(0.5, 1.5)); pts.push(new THREE.Vector2(0.8, 1.8));
+                pts.push(new THREE.Vector2(0.8, 2.2)); pts.push(new THREE.Vector2(0.3, 2.8)); pts.push(new THREE.Vector2(0.5, 3.2));
+                pts.push(new THREE.Vector2(0, 3.5));
+
+                const mat = new THREE.MeshPhysicalMaterial({ color: colorHex, metalness: 0.2, roughness: 0.1, clearcoat: 1.0 });
+                this.mesh = new THREE.Mesh(new THREE.LatheGeometry(pts, 32), mat);
+                this.mesh.castShadow = true; this.mesh.receiveShadow = true;
+                Engine.scene.add(this.mesh);
+                this.update3DPosition(0, true);
+            }
+
+            update3DPosition(index, instant = false, hOffset = 0) {
+                const target = Game.board.getTilePosition(index);
+                if(hOffset !== 0) { target.x += Math.cos(hOffset)*0.6; target.z += Math.sin(hOffset)*0.6; }
+
+                if (instant) {
+                    this.mesh.position.copy(target);
+                    return Promise.resolve();
+                } else {
+                    const startPos = this.mesh.position.clone();
+                    const dist = startPos.distanceTo(target);
+                    const duration = Math.min(Math.max(dist * 80, 250), 600);
+                    const height = Math.min(dist * 0.4, 3); 
+                    
+                    return new Promise(resolve => {
+                        let obj = { t: 0 };
+                        Tween.to(obj, { t: 1 }, duration, Tween.Easing.Linear.None).then(resolve);
+                        
+                        const animateJump = () => {
+                            if(obj.t < 1) {
+                                this.mesh.position.lerpVectors(startPos, target, obj.t);
+                                this.mesh.position.y = startPos.y + (target.y - startPos.y)*obj.t + Math.sin(obj.t * Math.PI) * height;
+                                if(Game.state === 'moving' || Game.state === 'event') Engine.camTarget.copy(this.mesh.position);
+                                requestAnimationFrame(animateJump);
+                            } else {
+                                this.mesh.position.copy(target);
+                                if(Game.state === 'moving' || Game.state === 'event') Engine.camTarget.copy(this.mesh.position);
+                            }
+                        };
+                        animateJump();
+                    });
+                }
+            }
+        }
+
+        const UI = {
+            colors: ['#ef4444', '#3b82f6', '#22c55e', '#eab308'],
+            playersConfig: [{ name: 'Joueur 1', isBot: false, color: '#ef4444' }, { name: 'Bot 1', isBot: true, color: '#3b82f6' }],
+            init: function() { this.renderSetup(); },
+            addPlayer: function() {
+                if (this.playersConfig.length >= 4) return;
+                this.playersConfig.push({ name: `Joueur ${this.playersConfig.length + 1}`, isBot: true, color: this.colors[this.playersConfig.length] });
+                this.renderSetup();
+            },
+            removePlayer: function(idx) { if(this.playersConfig.length > 1) { this.playersConfig.splice(idx, 1); this.renderSetup(); } },
+            toggleBot: function(idx) { this.playersConfig[idx].isBot = !this.playersConfig[idx].isBot; this.renderSetup(); },
+            updateName: function(idx, val) { this.playersConfig[idx].name = val; },
+            renderSetup: function() {
+                const list = document.getElementById('player-setup-list'); list.innerHTML = '';
+                document.getElementById('player-count-text').innerText = `${this.playersConfig.length}/4 Joueurs`;
+                this.playersConfig.forEach((p, i) => {
+                    list.innerHTML += `
+                        <div class="flex items-center gap-2 md:gap-3 bg-white/10 p-2 md:p-3 rounded-xl border border-white/20">
+                            <div class="w-6 h-6 rounded-full shadow-inner flex-shrink-0" style="background-color: ${p.color}"></div>
+                            <input type="text" value="${p.name}" onchange="UI.updateName(${i}, this.value)" class="flex-1 bg-transparent text-white font-bold outline-none border-b border-white/30 w-24 text-base">
+                            <button onclick="UI.toggleBot(${i})" class="px-3 py-1 rounded text-xs font-bold ${p.isBot ? 'bg-blue-500' : 'bg-emerald-500'} text-white uppercase transition-colors">${p.isBot ? '🤖 Bot' : '👤 Humain'}</button>
+                            ${this.playersConfig.length > 1 ? `<button onclick="UI.removePlayer(${i})" class="text-red-400 font-bold px-2">✕</button>` : ''}
+                        </div>`;
+                });
+            },
+            log: function(msg, highlight=false) {
+                const log = document.getElementById('action-log');
+                const entry = document.createElement('div');
+                entry.className = `log-entry mb-2 ${highlight ? 'text-yellow-300 font-bold text-sm' : 'text-gray-200'}`;
+                entry.innerHTML = `> ${msg}`;
+                log.prepend(entry);
+                if(log.children.length > 30) log.removeChild(log.lastChild);
+            },
+            updateHUD: function() {
+                const hud = document.getElementById('players-hud'); hud.innerHTML = '';
+                Game.players.forEach((p, i) => {
+                    const active = i === Game.currentPlayerIndex;
+                    const status = p.isStuck ? ' (Coincé)' : (p.skipTurns > 0 ? ` (Attente)` : '');
+                    hud.innerHTML += `
+                        <div class="panel-glass rounded-xl p-2 px-3 flex items-center gap-3 transition-transform ${active ? 'scale-105 border-yellow-400 bg-white/20' : 'opacity-60'}">
+                            <div class="w-4 h-4 rounded-full" style="background-color: ${p.color}"></div>
+                            <div class="flex flex-col"><span class="text-white font-bold text-sm drop-shadow-md">${p.name} <span class="text-red-300">${status}</span></span><span class="text-xs text-gray-300">Case ${p.position}</span></div>
+                        </div>`;
+                });
+                const curr = Game.players[Game.currentPlayerIndex];
+                const turnInd = document.getElementById('turn-indicator');
+                turnInd.innerText = curr.name; turnInd.style.color = curr.color;
+                const btn = document.getElementById('btn-roll');
+                btn.style.opacity = (curr.isBot || Game.state !== 'idle') ? '0.5' : '1';
+                btn.style.pointerEvents = (curr.isBot || Game.state !== 'idle') ? 'none' : 'auto';
+            }
+        };
+
+        const Game = {
+            players: [], currentPlayerIndex: 0, board: null, dice: null, state: 'setup',
+            start: async function() {
+                document.getElementById('setup-screen').classList.add('hidden');
+                document.getElementById('ui-layer').classList.remove('hidden');
+                this.dice = new Dice();
+                UI.playersConfig.forEach((cfg, i) => this.players.push(new Player(i, cfg.name, cfg.isBot, cfg.color)));
+                Engine.setCameraView('iso');
+                this.state = 'idle';
+                this.updateTurnVisuals();
+                UI.log("Début de la partie !");
+            },
+            updateTurnVisuals: function() {
+                UI.updateHUD();
+                const p = this.players[this.currentPlayerIndex];
+                Engine.camTarget.copy(p.mesh.position);
+                this.board.activeAura.visible = true;
+                this.board.activeAura.position.set(p.mesh.position.x, 0.45, p.mesh.position.z);
+                this.board.activeAura.material.color.set(p.color);
+                if (p.isBot && this.state === 'idle') setTimeout(() => this.rollDice(), 1000);
+            },
+            toggleCamera: function() { Engine.setCameraView(Engine.viewType === 'iso' ? 'top' : 'iso'); },
+            nextTurn: function() {
+                if(this.state === 'gameover') return;
+                this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+                const p = this.players[this.currentPlayerIndex];
+                if (p.isStuck) { UI.log(`${p.name} est bloqué dans le Puits...`, true); UI.updateHUD(); return setTimeout(() => this.nextTurn(), 1500); }
+                if (p.skipTurns > 0) { p.skipTurns--; UI.log(`${p.name} se repose à l'Auberge.`, true); UI.updateHUD(); return setTimeout(() => this.nextTurn(), 1500); }
+                this.state = 'idle'; this.updateTurnVisuals();
+            },
+            rollDice: async function() {
+                if (this.state !== 'idle') return;
+                this.state = 'rolling';
+                const p = this.players[this.currentPlayerIndex];
+                p.stats.turns++;
+                UI.updateHUD();
+                UI.log(`${p.name} lance les dés...`);
+                const result = await this.dice.roll(p.mesh.position);
+                UI.log(`🎲 Résultat : ${result.total} (${result.v1}+${result.v2})`, true);
+                await this.processMove(p, result);
+            },
+            processMove: async function(player, diceResult) {
+                this.state = 'moving';
+                
+                // CORRECTION BUG 1 : Règle du 9 ultra sécurisée (uniquement au 1er lancer EXACTEMENT depuis la case 0)
+                if (player.stats.turns === 1 && player.position === 0 && diceResult.total === 9) {
+                    if ((diceResult.v1 === 3 && diceResult.v2 === 6) || (diceResult.v1 === 6 && diceResult.v2 === 3)) {
+                        UI.log(`✨ Règle du 9 (6+3) ! Direction case 26.`, true);
+                        await this.animatePawnMove(player, 26); return this.checkTileLogic(player, 0);
+                    } else if ((diceResult.v1 === 4 && diceResult.v2 === 5) || (diceResult.v1 === 5 && diceResult.v2 === 4)) {
+                        UI.log(`✨ Règle du 9 (5+4) ! Direction case 53.`, true);
+                        await this.animatePawnMove(player, 53); return this.checkTileLogic(player, 0);
+                    }
+                }
+
+                let target = player.position + diceResult.total;
+                let isBouncing = false;
+
+                if (target > 63) {
+                    isBouncing = true;
+                    target = 63 - (target - 63); // Rebond arrière
+                }
+
+                const steps = Math.abs(target - player.position);
+                const direction = target > player.position ? 1 : -1;
+                
+                // Animation pas à pas jusqu'à la limite, puis rebond
+                let currentPos = player.position;
+                
+                if (isBouncing) {
+                    // Avance jusqu'à 63
+                    for(let i=currentPos+1; i<=63; i++) await player.update3DPosition(i);
+                    UI.log(`💥 ${player.name} rebondit sur la case 63 !`);
+                    // Recule jusqu'à la cible
+                    for(let i=62; i>=target; i--) await player.update3DPosition(i);
+                } else {
+                    for(let i=1; i<=steps; i++) await player.update3DPosition(currentPos + (direction * i));
+                }
+                
+                player.position = target;
+                await this.checkCollision(player);
+                await this.checkTileLogic(player, diceResult.total);
+            },
+            animatePawnMove: async function(player, target) {
+                await player.update3DPosition(target); player.position = target;
+            },
+            checkCollision: async function(arrivingPlayer) {
+                const residents = this.players.filter(p => p !== arrivingPlayer && p.position === arrivingPlayer.position && p.position !== 0);
+                if (residents.length > 0) {
+                    const resident = residents[0];
+                    UI.log(`⚔️ Collision ! ${arrivingPlayer.name} renvoie ${resident.name} !`, true);
+                    // Règle classique stricte : l'occupant va là où l'arrivant a commencé son tour
+                    const startingPos = Math.max(0, arrivingPlayer.position - (arrivingPlayer.stats.lastRollVal || 0));
+                    await resident.update3DPosition(startingPos); 
+                    resident.position = startingPos;
+                    this.arrangePawnsOnTile(startingPos);
+                }
+                this.arrangePawnsOnTile(arrivingPlayer.position);
+            },
+            arrangePawnsOnTile: function(tileIndex) {
+                const onTile = this.players.filter(p => p.position === tileIndex);
+                if(onTile.length > 1) onTile.forEach((p, i) => p.update3DPosition(tileIndex, true, (Math.PI*2/onTile.length)*i));
+                else if(onTile.length === 1) onTile[0].update3DPosition(tileIndex, true, 0); 
+            },
+            checkTileLogic: async function(player, lastRoll) {
+                player.stats.lastRollVal = lastRoll;
+                const type = this.board.getTileType(player.position);
+                const tilePos = this.board.getTilePosition(player.position);
+
+                switch(type) {
+                    case 'end':
+                        this.state = 'gameover'; Engine.spawnParticles(tilePos, '#fde047', 'burst');
+                        document.getElementById('ui-layer').classList.add('hidden');
+                        document.getElementById('victory-screen').classList.remove('hidden');
+                        document.getElementById('winner-name').innerText = `${player.name} a gagné !`;
+                        document.getElementById('winner-name').style.color = player.color;
+                        Engine.setCameraView('top'); return;
+
+                    case 'goose':
+                        // CORRECTION BUG BOUCLE INFINIE : Si lastRoll === 0 (déplacement via carte), on ne rebondit PAS.
+                        if (lastRoll === 0) {
+                            UI.log(`🦆 CASE OIE ! Mais vous restez ici.`, true);
+                            break;
+                        }
+                        player.stats.geese++; Engine.spawnParticles(tilePos, '#fbbf24', 'burst');
+                        UI.log(`🦆 CASE OIE ! ${player.name} rejoue son score de ${lastRoll}.`, true);
+                        await new Promise(r => setTimeout(r, 1000));
+                        return this.processMove(player, {total: lastRoll});
+
+                    case 'bridge':
+                        Engine.spawnParticles(tilePos, '#f97316'); UI.log(`🌉 Le Pont ! Direction case 12.`, true);
+                        await new Promise(r => setTimeout(r, 800)); await this.animatePawnMove(player, 12);
+                        return this.checkTileLogic(player, 0);
+
+                    case 'hotel':
+                        player.stats.traps++; UI.log(`🏨 L'Auberge. ${player.name} passe 1 tour.`, true); player.skipTurns = 1; break;
+
+                    case 'well':
+                        player.stats.traps++; Engine.spawnParticles(tilePos, '#3b82f6', 'splash'); UI.log(`🕳️ Puits ! Bloqué !`, true);
+                        player.isStuck = true;
+                        this.players.forEach(p => { if (p !== player && p.isStuck) { p.isStuck = false; UI.log(`✨ ${p.name} est libéré !`); }});
+                        break;
+
+                    case 'maze':
+                        player.stats.traps++; Engine.spawnParticles(tilePos, '#a855f7'); UI.log(`🌀 Labyrinthe ! Retour case 30.`, true);
+                        await new Promise(r => setTimeout(r, 800)); await this.animatePawnMove(player, 30);
+                        return this.checkTileLogic(player, 0);
+
+                    case 'skull':
+                        player.stats.traps++; Engine.spawnParticles(tilePos, '#ef4444', 'burst'); UI.log(`💀 Tête de Mort ! Retour au départ !`, true);
+                        await new Promise(r => setTimeout(r, 800)); await this.animatePawnMove(player, 0); break;
+
+                    case 'mystery':
+                        Engine.spawnParticles(tilePos, '#06b6d4'); return this.openMysteryCard(player);
+                }
+                setTimeout(() => this.nextTurn(), 1000);
+            },
+            openMysteryCard: function(player) {
+                this.state = 'event'; const popup = document.getElementById('event-popup');
+                const events = [
+                    { t: "Coup de Vent", d: "Vous avancez de 3 cases !", v: 3 }, { t: "Faux Pas", d: "Vous reculez de 2 cases.", v: -2 },
+                    { t: "Repos Forcé", d: "Passez votre prochain tour.", skip: 1 }, { t: "Chance", d: "Rejouez immédiatement !", extraTurn: true }
+                ];
+                this.currentEvent = events[Math.floor(Math.random() * events.length)]; this.eventPlayer = player;
+                document.getElementById('event-title').innerText = this.currentEvent.t; document.getElementById('event-desc').innerText = this.currentEvent.d;
+                popup.classList.remove('hidden');
+                if (player.isBot) setTimeout(() => this.closeEvent(), 2000);
+            },
+            closeEvent: async function() {
+                document.getElementById('event-popup').classList.add('hidden');
+                const ev = this.currentEvent; const p = this.eventPlayer;
+                if (ev.v) {
+                    let target = Math.max(0, p.position + ev.v);
+                    await this.animatePawnMove(p, target); await this.checkCollision(p); await this.checkTileLogic(p, 0); 
+                } else if (ev.skip) { p.skipTurns += ev.skip; this.nextTurn();
+                } else if (ev.extraTurn) { this.state = 'idle'; this.updateTurnVisuals();
+                } else { this.nextTurn(); }
+            }
+        };
+
+        window.onload = function() { UI.init(); Engine.init(); };
+    </script>
+</body>
+</html>
