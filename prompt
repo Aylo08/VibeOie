@@ -1,0 +1,34 @@
+Agis en tant qu'expert en développement web frontend et crée une application web complète, moderne, belle et ergonomique pour un "Jeu de l'Oie" classique. Le tout doit être contenu dans un seul fichier HTML autonome (incluant le CSS pour le design et le JavaScript pour toute la logique).
+
+Voici les spécifications techniques et fonctionnelles exactes :
+
+1. Écran de configuration initial :
+   - Un menu élégant permettant de choisir le nombre de joueurs (de 1 à 4) et de personnaliser éventuellement leurs noms ou de garder des noms par défaut (Joueur 1, Joueur 2, etc.) avec des couleurs de pions distinctes.
+   - Un bouton "Démarrer la partie".
+
+2. Interface de jeu et Design (UI/UX) :
+   - Un design soigné, moderne, épuré et responsive (style web app propre, ombres douces, couleurs harmonieuses).
+   - Génère tous les assets visuels directement en CSS et SVG (pas d'images externes requises) : pions colorés, icônes pour les cases spéciales (oies, pont, hôtel, puits, labyrinthe, tête de mort).
+   - Un plateau de jeu interactif affichant clairement les 63 cases numérotées, sur lequel les pions des joueurs se déplacent en temps réel de manière fluide.
+   - Un panneau de contrôle latéral ou supérieur indiquant :
+     * À quel joueur c'est le tour (avec indicateur visuel de sa couleur).
+     * Un bouton interactif "Lancer le dé" stylisé, avec une animation de dé.
+     * Un journal des actions / historique des tours en direct (ex: "Le Joueur 1 a fait 4 et tombe sur la case 10.").
+     * Le statut des joueurs (ex: si un joueur est bloqué au puits).
+     * Un bouton "Recommencer / Nouvelle partie".
+
+3. Règles et Logique du Jeu (JavaScript) :
+   - Le plateau comporte exactement 63 cases.
+   - Gestion des tours de 1 à N joueurs.
+   - Lancer de dé aléatoire entre 1 et 6.
+   - Cases spéciales à implémenter :
+     * Les Oies (cases 9, 18, 27, 36, 45, 54) : Avancent du même nombre de cases que le dé qui vient d'être lancé.
+     * Le Pont (case 6) : Avance directement à la case 12.
+     * L'Hôtel / Auberge (case 19) : Le joueur passe son tour suivant.
+     * Le Puits (case 31) : Le joueur est bloqué pendant 1 tour.
+     * Le Labyrinthe (case 42) : Recule le joueur à la case 30.
+     * La Tête de Mort (case 58) : Renvoie le joueur tout droit à la case départ (case 1).
+   - Condition de victoire : Atteindre *exactement* la case 63. Si le score du dé dépasse 63, le pion rebondit et recule du surplus.
+   - Une modale de victoire stylisée s'affiche lorsqu'un joueur gagne, avec la possibilité de relancer une partie.
+
+Fournis uniquement le code HTML complet, propre, commenté et prêt à être testé en l'enregistrant dans un fichier `.html`et tu ajoutera avec les image et autres fichiers complementaire que je dois mettre avec.
